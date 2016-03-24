@@ -4,13 +4,12 @@ use ieee.numeric_std.all;
 
 entity ALU is
   port (
-	clk : in std_logic;
 	opcode : in std_logic_vector(5 downto 0);
 	funct : in std_logic_vector(5 downto 0);
 	shamt : in std_logic_vector(4 downto 0);
 	port_1 : in std_logic_vector(31 downto 0);
 	port_2 : in std_logic_vector(31 downto 0);
-	result : out std_logic_vector(31 downto 0)
+	result : out std_logic_vector(31 downto 0) := x"00000000"
   ) ;
 end entity ; -- ALU
 
@@ -21,18 +20,20 @@ signal mult_lo : std_logic_vector(31 downto 0);
 
 begin
 
-alu_execution : process(clk)
+alu_execution : process(opcode, funct, shamt, port_1, port_2)
 
 	variable mult_temp : std_logic_vector(63 downto 0);
+	variable div_a : integer;
+	variable div_b : integer;
+	variable div_temp : integer;
 
 begin
-	if rising_edge(clk) then
 		case( funct ) is
 		
 			when "000000" => --sll 0x00
-				result <= std_logic_vector(shift_left(unsigned(port_1), to_integer(unsigned(shamt))));
+				result <= std_logic_vector(shift_left(unsigned(port_2), to_integer(unsigned(shamt))));
 			when "000010" => --srl 0x02
-				result <= std_logic_vector(shift_right(unsigned(port_1), to_integer(unsigned(shamt))));
+				result <= std_logic_vector(shift_right(unsigned(port_2), to_integer(unsigned(shamt))));
 			when "001000" => --jr 0x08
 				-- no operation
 			when "010000" => --mfhi 0x10
@@ -44,8 +45,13 @@ begin
 				mult_hi <= mult_temp(63 downto 32);
 				mult_lo <= mult_temp(31 downto 0);
 			when "011010" => --div 0x1A
-				mult_lo <= std_logic_vector(to_signed(to_integer(signed(port_1)) / to_integer(signed(port_2)), 32));
-				mult_hi <= std_logic_vector(to_signed(to_integer(signed(port_1)) rem to_integer(signed(port_2)), 32));
+				div_a := to_integer(signed(port_1));
+				div_b := to_integer(signed(port_2));
+				if div_b /= 0 then
+					div_temp := div_a / div_b;
+					mult_lo <= std_logic_vector(to_signed(div_temp, 32));
+					mult_hi <= std_logic_vector(to_signed(to_integer(signed(port_1)) rem to_integer(signed(port_2)), 32));
+				end if;
 			when "100000" => --add 0x20
 				result <= std_logic_vector(to_signed(to_integer(signed(port_1)) + to_integer(signed(port_2)), 32));
 			when "100010" => --sub 0x22
@@ -65,9 +71,14 @@ begin
 					result <= x"00000000";
 				end if ;
 			when others => --Non-R type operations
-
+				case( opcode ) is
+				
+					when "001000" => --addi 0x08
+						result <= std_logic_vector(to_signed(to_integer(signed(port_1)) + to_integer(signed(port_2)), 32));
+					when others =>
+				
+				end case ;
 		end case ;
-	end if;
 end process ; -- alu_execution
 
 end architecture ; -- arch
