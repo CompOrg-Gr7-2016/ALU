@@ -29,7 +29,7 @@ alu_execution : process(opcode, funct, shamt, port_1, port_2)
 
 begin
 		case( funct ) is
-		
+
 			when "000000" => --sll 0x00
 				result <= std_logic_vector(shift_left(unsigned(port_2), to_integer(unsigned(shamt))));
 			when "000010" => --srl 0x02
@@ -67,16 +67,29 @@ begin
 			when "101010" => --slt 0x2A
 				if to_integer(signed(port_1)) < to_integer(signed(port_2)) then
 					result <= x"00000001";
-				else 
+				else
 					result <= x"00000000";
 				end if ;
 			when others => --Non-R type operations
 				case( opcode ) is
-				
 					when "001000" => --addi 0x08
 						result <= std_logic_vector(to_signed(to_integer(signed(port_1)) + to_integer(signed(port_2)), 32));
-					when others =>
-				
+					when "001100" => --andi 0x0C
+						result <= port_1 and port_2;
+					when "001101" => --ori 0x0D
+						result <= port_1 or port_2;
+					when "001110" => --xori 0x0E
+						result <= port_1 xor port_2;
+                    when "100000" => -- load byte
+                        result <= std_logic_vector(to_signed(to_integer(signed(port_1)) + to_integer(signed(port_2)), 32));
+                    when "100011" => -- load word
+                        result <= std_logic_vector(to_signed(to_integer(signed(port_1)) + to_integer(signed(port_2)), 32));
+                    when "101000" => -- store byte
+                        result <= std_logic_vector(to_signed(to_integer(signed(port_1)) + to_integer(signed(port_2)), 32));
+                    when "101011" => -- store word
+                        result <= std_logic_vector(to_signed(to_integer(signed(port_1)) + to_integer(signed(port_2)), 32));
+                    when others =>
+                        result <= x"00000000";
 				end case ;
 		end case ;
 end process ; -- alu_execution
